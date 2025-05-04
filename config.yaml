@@ -1,0 +1,13 @@
+# Configuration file for the Nutrition Tracker MVP
+# Add your application settings here.
+
+storage:
+  primary: sqlite
+  secondary: json
+
+sqlite:
+  path: data/nutrition.db
+
+json:
+  base_dir: data/json
+  mode: per_day
