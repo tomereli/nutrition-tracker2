@@ -1,0 +1,228 @@
+openapi: 3.0.0
+info:
+  title: Nutrition Tracker API
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000
+
+paths:
+  /addEntry:
+    post:
+      summary: Add a new nutrition entry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Entry'
+      responses:
+        '200':
+          description: The added entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entry'
+
+  /showDaily:
+    get:
+      summary: Retrieve nutrition entries grouped by day.
+      parameters:
+        - in: query
+          name: start
+          schema:
+            type: string
+          description: Start date (YYYY-MM-DD)
+        - in: query
+          name: end
+          schema:
+            type: string
+          description: End date (YYYY-MM-DD)
+      responses:
+        '200':
+          description: A map of date → list of entries
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Entry'
+        '400':
+          description: Invalid date format or range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /showSummary:
+    get:
+      summary: Retrieve summarized nutrition data by day.
+      parameters:
+        - in: query
+          name: start
+          schema:
+            type: string
+          description: Start date (YYYY-MM-DD)
+        - in: query
+          name: end
+          schema:
+            type: string
+          description: End date (YYYY-MM-DD)
+      responses:
+        '200':
+          description: A map of date → summary data
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/Summary'
+        '400':
+          description: Invalid date format or range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /getDailyReport:
+    get:
+      summary: Generate a detailed daily nutrition report in HTML.
+      parameters:
+        - in: query
+          name: date
+          required: true
+          schema:
+            type: string
+          description: The date for the report (YYYY-MM-DD)
+      responses:
+        '200':
+          description: HTML report for the specified day
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Invalid or missing date parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /getWeeklyReport:
+    get:
+      summary: Generate a weekly nutrition report in HTML.
+      parameters:
+        - in: query
+          name: start
+          schema:
+            type: string
+          description: Start date (YYYY-MM-DD)
+        - in: query
+          name: end
+          schema:
+            type: string
+          description: End date (YYYY-MM-DD)
+      responses:
+        '200':
+          description: HTML report for the week
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /deleteEntry:
+    post:
+      summary: Delete all entries for a specific date.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                  description: Date to delete (YYYY-MM-DD)
+      responses:
+        '200':
+          description: Confirmation of deletion
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: No entries found for the given date
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /flushEntries:
+    post:
+      summary: Delete all entries.
+      responses:
+        '200':
+          description: Confirmation of flush
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+components:
+  schemas:
+    Entry:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        description:
+          type: string
+        calories:
+          type: integer
+        protein:
+          type: integer
+        carbs:
+          type: integer
+        fat:
+          type: integer
+        caffeine:
+          type: integer
+      required:
+        - timestamp
+        - description
+        - calories
+        - protein
+
+    Summary:
+      type: object
+      properties:
+        calories:
+          type: integer
+        protein:
+          type: integer
+        carbs:
+          type: integer
+        fat:
+          type: integer
+        caffeine:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
