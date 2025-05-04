@@ -1,16 +1,86 @@
 # Storage manager for handling data storage and retrieval
 # Define functions for saving and loading data here.
 
+import sqlite3
 from config import load_config
-from typing import Any
+from typing import Any, List, Tuple
 
 class SQLiteBackend:
-    def __init__(self, sqlite_path: str):
-        self.sqlite_path = sqlite_path
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+        self.conn = sqlite3.connect(self.db_path)
+        self._create_table()
 
-    def add_entry(self, entry: Any):
-        # Placeholder for adding an entry to SQLite
-        print(f"Adding entry to SQLite at {self.sqlite_path}: {entry}")
+    def _create_table(self):
+        query = """
+        CREATE TABLE IF NOT EXISTS entries (
+            id INTEGER PRIMARY KEY,
+            timestamp TEXT NOT NULL,
+            description TEXT,
+            calories INTEGER,
+            protein INTEGER,
+            carbs INTEGER,
+            fat INTEGER,
+            caffeine INTEGER
+        )
+        """
+        self.conn.execute(query)
+        self.conn.commit()
+
+    def add_entry(self, entry: dict):
+        query = """
+        INSERT INTO entries (timestamp, description, calories, protein, carbs, fat, caffeine)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """
+        self.conn.execute(query, (
+            entry["timestamp"],
+            entry["description"],
+            entry["calories"],
+            entry["protein"],
+            entry["carbs"],
+            entry["fat"],
+            entry["caffeine"]
+        ))
+        self.conn.commit()
+
+    def get_entries(self, start: str, end: str) -> List[Tuple]:
+        query = """
+        SELECT * FROM entries
+        WHERE date(timestamp) BETWEEN date(?) AND date(?)
+        """
+        cursor = self.conn.execute(query, (start, end))
+        return cursor.fetchall()
+
+    def delete_entries(self, date: str):
+        query = """
+        DELETE FROM entries
+        WHERE date(timestamp) = date(?)
+        """
+        self.conn.execute(query, (date,))
+        self.conn.commit()
+
+    def flush_entries(self):
+        query = "DELETE FROM entries"
+        self.conn.execute(query)
+        self.conn.commit()
+
+    def get_daily_summary(self, date: str) -> Tuple:
+        query = """
+        SELECT SUM(calories), SUM(protein), SUM(carbs), SUM(fat), SUM(caffeine)
+        FROM entries
+        WHERE date(timestamp) = date(?)
+        """
+        cursor = self.conn.execute(query, (date,))
+        return cursor.fetchone()
+
+    def get_weekly_summary(self, start: str, end: str) -> Tuple:
+        query = """
+        SELECT SUM(calories), SUM(protein), SUM(carbs), SUM(fat), SUM(caffeine)
+        FROM entries
+        WHERE date(timestamp) BETWEEN date(?) AND date(?)
+        """
+        cursor = self.conn.execute(query, (start, end))
+        return cursor.fetchone()
 
 class JSONBackend:
     def __init__(self, base_dir: str, mode: str):
